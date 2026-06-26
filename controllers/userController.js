@@ -70,11 +70,76 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ message: "Invalid password" });
     }
 
+    const token = jwt.sign(
+      {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        isAdmin: user.isAdmin,
+      },
+      process.env.JWT_SECRET_KEY,
+      { expiresIn: "7d" }
+    );
+
     res.json({
       message: "Login successful",
+      token,
+      role: user.role,
+      isAdmin: user.isAdmin,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      image: user.image,
     });
 
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// GET PROFILE
+export const getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.json(user);
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+// UPDATE PROFILE
+export const updateProfile = async (req, res) => {
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        phone: req.body.phone,
+        address: req.body.address,
+        location: req.body.location,
+        image: req.body.image || undefined,
+      },
+      {
+        new: true,
+      }
+    ).select("-password");
+
+    res.json(updatedUser);
+
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    });
   }
 };
