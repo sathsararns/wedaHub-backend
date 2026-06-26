@@ -116,3 +116,30 @@ export const getProfile = async (req, res) => {
     });
   }
 };
+
+// UPDATE PROFILE
+export const updateProfile = async (req, res) => {
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        phone: req.body.phone,
+        address: req.body.address,
+        location: req.body.location,
+        image: req.body.image || undefined,
+      },
+      {
+        new: true,
+      }
+    ).select("-password");
+
+    res.json(updatedUser);
+
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    });
+  }
+};
