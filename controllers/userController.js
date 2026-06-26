@@ -27,7 +27,6 @@ export const createUser = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // password check
     if (!isStrongPassword(password)) {
       return res.status(400).json({
         message:
@@ -50,6 +49,32 @@ export const createUser = async (req, res) => {
 
   } catch (error) {
     console.log("REGISTER ERROR:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// LOGIN
+export const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isValid = await bcrypt.compare(password, user.password);
+
+    if (!isValid) {
+      return res.status(401).json({ message: "Invalid password" });
+    }
+
+    res.json({
+      message: "Login successful",
+    });
+
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
