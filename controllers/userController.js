@@ -1,4 +1,3 @@
-// controllers/authController.js
 import User from "../models/user.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -21,12 +20,14 @@ export const createUser = async (req, res) => {
 
     const { email, password } = req.body;
 
+    // ✅ FIX: define existing user
     const existing = await User.findOne({ email });
 
     if (existing) {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    // password check
     if (!isStrongPassword(password)) {
       return res.status(400).json({
         message:
@@ -97,7 +98,6 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// GET PROFILE
 export const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
@@ -117,9 +117,10 @@ export const getProfile = async (req, res) => {
   }
 };
 
-// UPDATE PROFILE
+// 🔥 ADD THIS BELOW getProfile
 export const updateProfile = async (req, res) => {
   try {
+
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
       {
