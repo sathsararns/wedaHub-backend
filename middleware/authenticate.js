@@ -1,4 +1,3 @@
-// middleware/auth.js
 import jwt from "jsonwebtoken";
 
 export default function (req, res, next) {
@@ -9,7 +8,12 @@ export default function (req, res, next) {
   }
 
   const token = header.replace("Bearer ", "");
-  
-  // TODO: Verify token with JWT secret
-  next();
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
 }
