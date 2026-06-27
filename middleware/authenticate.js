@@ -8,6 +8,8 @@ export default function (req, res, next) {
     return res.status(401).json({ message: "No token" });
   }
 
-  // TODO: Implement token verification
+  const token = header.replace("Bearer ", "");
+  
+  // TODO: Verify token with JWT secret
   next();
 }
