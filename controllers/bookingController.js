@@ -23,3 +23,15 @@ export const createBooking = async (req, res) => {
   }
 };
 
+// GET BOOKINGS (Provider)
+export const getProviderBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.find({
+      providerId: req.user.id,
+    }).populate("customerId", "email firstName lastName");
+
+    res.json(bookings);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
