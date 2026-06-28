@@ -124,3 +124,36 @@ export const completeBooking = async (req, res) => {
   }
 };
 
+export const addRating = async (req, res) => {
+  try {
+    const { rating, review } = req.body;
+
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // only customer can rate completed booking
+    if (booking.customerId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    if (booking.status !== "completed") {
+      return res.status(400).json({ message: "Service not completed yet" });
+    }
+
+    booking.rating = rating;
+    booking.review = review;
+
+    await booking.save();
+
+    res.json({
+      message: "Rating submitted successfully",
+      booking,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
