@@ -1,4 +1,3 @@
-// models/User.js
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
@@ -39,7 +38,7 @@ const userSchema = new mongoose.Schema(
       default: "customer",
     },
 
-    // Customer fields
+    // Customer
     address: {
       type: String,
       default: "",
@@ -49,6 +48,47 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    // Provider
+    businessName: {
+      type: String,
+      default: "",
+    },
+
+    description: {
+      type: String,
+      default: "",
+    },
+
+    category: {
+      type: String,
+      default: "",
+    },
+
+    serviceRadius: {
+      type: Number,
+      default: 0,
+    },
+
+    isAdmin: {
+      type: Boolean,
+      default: false,
+    },
+
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
+
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    image: {
+      type: String,
+      default: "/default-profile.png",
+    }
   },
   {
     timestamps: true,
