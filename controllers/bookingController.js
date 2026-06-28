@@ -1,0 +1,25 @@
+import Booking from "../models/booking.js";
+import { io } from "../index.js";
+
+// CREATE BOOKING (Customer)
+export const createBooking = async (req, res) => {
+  try {
+    const booking = new Booking({
+      customerId: req.user.id,
+      providerId: req.body.providerId,
+      serviceName: req.body.serviceName,
+      description: req.body.description,
+      date: req.body.date,
+    });
+
+    await booking.save();
+
+    res.status(201).json({
+      message: "Booking created successfully",
+      booking,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
