@@ -35,3 +35,24 @@ export const getProviderBookings = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// UPDATE STATUS (Provider)
+export const updateBookingStatus = async (req, res) => {
+  try {
+    const booking = await Booking.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true }
+    );
+
+    // 🔥 REALTIME NOTIFICATION
+    io.emit("booking-updated", booking);
+
+    res.json({
+      message: "Updated",
+      booking,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
