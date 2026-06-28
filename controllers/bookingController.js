@@ -96,3 +96,31 @@ export const cancelBooking = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const completeBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({ message: "Not found" });
+    }
+
+    // only provider can complete
+    if (booking.providerId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    booking.status = "completed";
+    booking.serviceCompleted = true;
+
+    await booking.save();
+
+    res.json({
+      message: "Service marked as completed",
+      booking,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
