@@ -157,3 +157,24 @@ export const addRating = async (req, res) => {
   }
 };
 
+export const getProviderRating = async (req, res) => {
+  const providerId = req.params.id;
+
+  const bookings = await Booking.find({
+    providerId,
+    rating: { $ne: null }
+  });
+
+  if (bookings.length === 0) {
+    return res.json({ average: 0, totalReviews: 0 });
+  }
+
+  const avg =
+    bookings.reduce((sum, b) => sum + b.rating, 0) /
+    bookings.length;
+
+  res.json({
+    average: avg.toFixed(1),
+    totalReviews: bookings.length
+  });
+};
