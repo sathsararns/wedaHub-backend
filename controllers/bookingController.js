@@ -68,3 +68,31 @@ export const getCustomerBookings = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const cancelBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // only owner can cancel
+    if (booking.customerId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    // only pending can be cancelled
+    if (booking.status !== "pending") {
+      return res.status(400).json({
+        message: "Cannot cancel after provider action",
+      });
+    }
+
+    await Booking.findByIdAndDelete(req.params.id);
+
+    res.json({ message: "Booking cancelled successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
