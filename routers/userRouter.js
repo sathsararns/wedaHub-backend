@@ -4,6 +4,7 @@ import {
   loginUser,
   getProfile,
   updateProfile,
+  getProvidersByCategory,
   
 } from "../controllers/userController.js";
 
@@ -15,5 +16,10 @@ router.post("/register", createUser);
 router.post("/login", loginUser);
 router.get("/profile", authenticate, getProfile);
 router.put("/profile", authenticate, updateProfile);
+
+router.get(
+  "/providers/:category",
+  getProvidersByCategory
+);
 
 export default router;

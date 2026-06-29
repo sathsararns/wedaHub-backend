@@ -144,3 +144,24 @@ export const updateProfile = async (req, res) => {
     });
   }
 };
+
+// GET PROVIDERS BY CATEGORY
+export const getProvidersByCategory = async (req, res) => {
+  try {
+    const { category } = req.params;
+
+    const providers = await User.find({
+      role: "provider",
+      category: {
+        $regex: new RegExp(`^${category}$`, "i"),
+      },
+    }).select("-password");
+
+    res.status(200).json(providers);
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
