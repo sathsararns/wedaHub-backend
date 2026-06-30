@@ -10,6 +10,7 @@ import { Server } from "socket.io";
 import userRouter from "./routers/userRouter.js";
 import bookingRouter from "./routers/bookingRouter.js";
 import adminRouter from "./routers/adminRouter.js";
+import reviewRoutes from "./routers/reviewRoutes.js";
 
 import authenticate from "./middlewares/authenticate.js";
 
@@ -45,6 +46,8 @@ app.use(authenticate);
 app.use("/api/bookings", bookingRouter);
 
 app.use("/api/admin", adminRouter);
+
+app.use("/api/reviews", reviewRoutes);
 
 mongoose.connect(process.env.MONGO_URI).then(() => {
   console.log("MongoDB Connected");
