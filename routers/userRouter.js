@@ -5,6 +5,7 @@ import {
   getProfile,
   updateProfile,
   getProvidersByCategory,
+  getProviderById,
   
 } from "../controllers/userController.js";
 
@@ -21,5 +22,7 @@ router.get(
   "/providers/:category",
   getProvidersByCategory
 );
+
+router.get("/provider/:id", getProviderById);
 
 export default router;
