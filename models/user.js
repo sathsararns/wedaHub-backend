@@ -38,7 +38,10 @@ const userSchema = new mongoose.Schema(
       default: "customer",
     },
 
+    // =========================
     // Customer
+    // =========================
+
     address: {
       type: String,
       default: "",
@@ -49,7 +52,10 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
+    // =========================
     // Provider
+    // =========================
+
     businessName: {
       type: String,
       default: "",
@@ -70,6 +76,22 @@ const userSchema = new mongoose.Schema(
       default: 0,
     },
 
+    // ⭐ Rating System
+    rating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+
+    reviews: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    // =========================
+
     isAdmin: {
       type: Boolean,
       default: false,
@@ -88,7 +110,7 @@ const userSchema = new mongoose.Schema(
     image: {
       type: String,
       default: "/default-profile.png",
-    }
+    },
   },
   {
     timestamps: true,
