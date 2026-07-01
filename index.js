@@ -48,7 +48,7 @@ app.use(authenticate);
 
 app.use("/api/bookings", bookingRouter);
 app.use("/api/admin", adminRouter);
-app.use("/api/reviews", reviewRoutes);
+
 
 mongoose.connect(process.env.MONGO_URI).then(() => {
   console.log("MongoDB Connected");
