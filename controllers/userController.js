@@ -128,12 +128,12 @@ export const updateProfile = async (req, res) => {
       location: req.body.location,
     };
 
-    // Profile image
-    if (req.body.image) {
+    // Profile Image
+    if (req.body.image !== undefined) {
       updateData.image = req.body.image;
     }
 
-    // Provider only fields
+    // Provider Fields
     if (req.body.businessName !== undefined) {
       updateData.businessName = req.body.businessName;
     }
@@ -146,8 +146,9 @@ export const updateProfile = async (req, res) => {
       updateData.serviceRadius = req.body.serviceRadius;
     }
 
-    if (req.body.workPhotos !== undefined) {
-      updateData.workPhotos = req.body.workPhotos;
+    // ✅ FIX
+    if (req.body.workImages !== undefined) {
+      updateData.workImages = req.body.workImages;
     }
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -155,12 +156,14 @@ export const updateProfile = async (req, res) => {
       updateData,
       {
         new: true,
+        runValidators: true,
       }
     ).select("-password");
 
     res.json(updatedUser);
-
   } catch (err) {
+    console.log(err);
+
     res.status(500).json({
       message: err.message,
     });
