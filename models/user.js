@@ -90,6 +90,12 @@ const userSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // 📸 Provider Portfolio Images
+    workImages: {
+      type: [String],
+      default: [],
+    },
+
     // =========================
 
     isAdmin: {

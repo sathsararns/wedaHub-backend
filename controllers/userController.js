@@ -120,25 +120,50 @@ export const getProfile = async (req, res) => {
 // 🔥 ADD THIS BELOW getProfile
 export const updateProfile = async (req, res) => {
   try {
+    const updateData = {
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      phone: req.body.phone,
+      address: req.body.address,
+      location: req.body.location,
+    };
+
+    // Profile Image
+    if (req.body.image !== undefined) {
+      updateData.image = req.body.image;
+    }
+
+    // Provider Fields
+    if (req.body.businessName !== undefined) {
+      updateData.businessName = req.body.businessName;
+    }
+
+    if (req.body.description !== undefined) {
+      updateData.description = req.body.description;
+    }
+
+    if (req.body.serviceRadius !== undefined) {
+      updateData.serviceRadius = req.body.serviceRadius;
+    }
+
+    // ✅ FIX
+    if (req.body.workImages !== undefined) {
+      updateData.workImages = req.body.workImages;
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
-      {
-        firstName: req.body.firstName,
-        lastName: req.body.lastName,
-        phone: req.body.phone,
-        address: req.body.address,
-        location: req.body.location,
-        image: req.body.image || undefined,
-      },
+      updateData,
       {
         new: true,
+        runValidators: true,
       }
     ).select("-password");
 
     res.json(updatedUser);
-
   } catch (err) {
+    console.log(err);
+
     res.status(500).json({
       message: err.message,
     });
