@@ -1,33 +1,35 @@
 import express from "express";
+import authenticate from "../middlewares/authenticate.js";
+
 import {
   createBooking,
+  getCustomerBookings,
   getProviderBookings,
   updateBookingStatus,
-  getCustomerBookings,
   cancelBooking,
   completeBooking,
   addRating,
-  getProviderRating
+  getProviderRating,
 } from "../controllers/bookingController.js";
 
 const router = express.Router();
 
-// customer creates booking
-router.post("/", createBooking);
+// Customer
+router.post("/", authenticate, createBooking);
 
-// provider sees bookings
-router.get("/", getProviderBookings);
+router.get("/customer", authenticate, getCustomerBookings);
 
-// provider updates booking status
-router.put("/:id", updateBookingStatus);
+router.delete("/:id", authenticate, cancelBooking);
 
-router.get("/customer", getCustomerBookings);
+// Provider
+router.get("/provider", authenticate, getProviderBookings);
 
-router.delete("/:id", cancelBooking);
+router.put("/:id", authenticate, updateBookingStatus);
 
-router.put("/complete/:id", completeBooking);
+router.put("/complete/:id", authenticate, completeBooking);
 
-router.put("/rate/:id", addRating);
+// Rating
+router.put("/rate/:id", authenticate, addRating);
 
 router.get("/rating/:id", getProviderRating);
 

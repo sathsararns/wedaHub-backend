@@ -19,7 +19,10 @@ const bookingSchema = new mongoose.Schema(
       required: true,
     },
 
-    description: String,
+    description: {
+      type: String,
+      default: "",
+    },
 
     date: {
       type: Date,
@@ -31,19 +34,27 @@ const bookingSchema = new mongoose.Schema(
       enum: ["pending", "accepted", "rejected", "completed"],
       default: "pending",
     },
+
     serviceCompleted: {
       type: Boolean,
-      default: false
-    },rating: {
-      type: Number,
-      default: null
+      default: false,
     },
+
+    rating: {
+      type: Number,
+      default: null,
+      min: 1,
+      max: 5,
+    },
+
     review: {
       type: String,
-      default: ""
-    }
+      default: "",
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
 export default mongoose.model("Booking", bookingSchema);
