@@ -80,6 +80,8 @@ export const getCustomerBookings = async (req, res) => {
 ============================ */
 export const getProviderBookings = async (req, res) => {
   try {
+    console.log("Logged Provider ID:", req.user.id);
+
     const bookings = await Booking.find({
       providerId: req.user.id,
     })
@@ -87,13 +89,15 @@ export const getProviderBookings = async (req, res) => {
         "customerId",
         "firstName lastName phone image email"
       )
-      .sort({
-        createdAt: -1,
-      });
+      .sort({ createdAt: -1 });
+
+    console.log("Provider Bookings:", bookings);
 
     res.json(bookings);
 
   } catch (err) {
+    console.log(err);
+
     res.status(500).json({
       message: err.message,
     });
