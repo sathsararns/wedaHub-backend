@@ -151,15 +151,16 @@ export const updateBookingStatus = async (req, res) => {
       );
 
     // Notify Customer
-    io.to(booking.customerId.toString()).emit(
-      "booking-updated",
-      updatedBooking
-    );
+io.to(booking.customerId.toString()).emit(
+  "booking-status-updated",
+  updatedBooking
+);
 
-    res.json({
-      message: `Booking ${status}`,
-      booking: updatedBooking,
-    });
+// Notify Provider
+io.to(booking.providerId.toString()).emit(
+  "booking-status-updated",
+  updatedBooking
+);
 
   } catch (err) {
     res.status(500).json({
