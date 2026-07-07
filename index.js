@@ -6,12 +6,13 @@ import dns from "node:dns";
 import http from "http";
 import { Server } from "socket.io";
 
-// routers
+// Routers
 import userRouter from "./routers/userRouter.js";
 import bookingRouter from "./routers/bookingRouter.js";
 import adminRouter from "./routers/adminRouter.js";
 import reviewRoutes from "./routers/reviewRoutes.js";
 
+// Middleware
 import authenticate from "./middlewares/authenticate.js";
 
 dotenv.config();
@@ -20,39 +21,82 @@ dns.setServers(["8.8.8.8", "1.1.1.1"]);
 const app = express();
 const server = http.createServer(app);
 
-// 🔥 SOCKET SERVER
+/* ============================
+   SOCKET.IO
+============================ */
+
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
   },
 });
 
-// store io globally
 export { io };
 
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+  console.log("Socket Connected :", socket.id);
+
+  // Customer / Provider joins own private room
+  socket.on("join-room", (userId) => {
+    if (!userId) return;
+
+    socket.join(userId);
+
+    console.log(`User ${userId} joined room`);
+  });
 
   socket.on("disconnect", () => {
-    console.log("User disconnected");
+    console.log("Socket Disconnected :", socket.id);
   });
 });
 
-app.use(cors());
+/* ============================
+   MIDDLEWARES
+============================ */
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
+
+/* ============================
+   PUBLIC ROUTES
+============================ */
 
 app.use("/api/users", userRouter);
 app.use("/api/reviews", reviewRoutes);
+
+/* ============================
+   PROTECTED ROUTES
+============================ */
 
 app.use(authenticate);
 
 app.use("/api/bookings", bookingRouter);
 app.use("/api/admin", adminRouter);
 
+/* ============================
+   DATABASE
+============================ */
 
-mongoose.connect(process.env.MONGO_URI).then(() => {
-  console.log("MongoDB Connected");
-});
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("MongoDB Connected");
+  })
+  .catch((err) => {
+    console.log(err);
+  });
+
+/* ============================
+   SERVER
+============================ */
 
 const PORT = process.env.PORT || 3000;
 
