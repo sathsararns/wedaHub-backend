@@ -34,9 +34,9 @@ export const createBooking = async (req, res) => {
 
     // Notify Provider
     io.to(providerId.toString()).emit(
-      "new-booking",
-      populatedBooking
-    );
+  "new-booking",
+  populatedBooking
+);
 
     res.status(201).json({
       message: "Booking created successfully",
@@ -105,7 +105,6 @@ export const getProviderBookings = async (req, res) => {
 ============================ */
 export const updateBookingStatus = async (req, res) => {
   try {
-
     const { status } = req.body;
 
     if (!["accepted", "rejected"].includes(status)) {
@@ -138,9 +137,7 @@ export const updateBookingStatus = async (req, res) => {
 
     await booking.save();
 
-    const updatedBooking = await Booking.findById(
-      booking._id
-    )
+    const updatedBooking = await Booking.findById(booking._id)
       .populate(
         "providerId",
         "firstName lastName category location phone image businessName"
@@ -151,24 +148,29 @@ export const updateBookingStatus = async (req, res) => {
       );
 
     // Notify Customer
-io.to(booking.customerId.toString()).emit(
-  "booking-status-updated",
-  updatedBooking
-);
+    io.to(booking.customerId.toString()).emit(
+      "booking-status-updated",
+      updatedBooking
+    );
 
-// Notify Provider
-io.to(booking.providerId.toString()).emit(
-  "booking-status-updated",
-  updatedBooking
-);
+    // Notify Provider
+    io.to(booking.providerId.toString()).emit(
+      "booking-status-updated",
+      updatedBooking
+    );
+
+    // ✅ Response
+    return res.json({
+      message: `Booking ${status} successfully`,
+      booking: updatedBooking,
+    });
 
   } catch (err) {
-    res.status(500).json({
+    return res.status(500).json({
       message: err.message,
     });
   }
 };
-
 /* ============================
    COMPLETE SERVICE
 ============================ */
@@ -213,9 +215,14 @@ export const completeBooking = async (req, res) => {
       );
 
     io.to(booking.customerId.toString()).emit(
-      "booking-updated",
-      updatedBooking
-    );
+  "booking-status-updated",
+  updatedBooking
+);
+
+io.to(booking.providerId.toString()).emit(
+  "booking-status-updated",
+  updatedBooking
+);
 
     res.json({
       message: "Service completed successfully",
@@ -258,9 +265,12 @@ export const cancelBooking = async (req, res) => {
     await booking.deleteOne();
 
     io.to(booking.providerId.toString()).emit(
-      "booking-cancelled",
-      booking._id
-    );
+  "booking-status-updated",
+  {
+    _id: booking._id,
+    status: "cancelled",
+  }
+);
 
     res.json({
       message: "Booking cancelled successfully",
