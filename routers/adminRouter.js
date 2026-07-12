@@ -128,4 +128,67 @@ router.put(
   }
 );
 
+// ==============================
+// ADMIN DASHBOARD STATS
+// ==============================
+
+router.get(
+  "/dashboard",
+  authenticate,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const totalUsers = await User.countDocuments();
+
+      const totalCustomers = await User.countDocuments({
+        role: "customer",
+      });
+
+      const totalProviders = await User.countDocuments({
+        role: "provider",
+      });
+
+      const totalBookings = await Booking.countDocuments();
+
+      const pendingBookings = await Booking.countDocuments({
+        status: "pending",
+      });
+
+      const recentUsers = await User.find()
+        .select("-password")
+        .sort({ createdAt: -1 })
+        .limit(5);
+
+      const recentBookings = await Booking.find()
+        .populate(
+          "customerId",
+          "firstName lastName email"
+        )
+        .populate(
+          "providerId",
+          "firstName lastName businessName"
+        )
+        .sort({ createdAt: -1 })
+        .limit(5);
+
+      res.json({
+        stats: {
+          totalUsers,
+          totalCustomers,
+          totalProviders,
+          totalBookings,
+          pendingBookings,
+        },
+
+        recentUsers,
+        recentBookings,
+      });
+    } catch (err) {
+      res.status(500).json({
+        message: err.message,
+      });
+    }
+  }
+);
+
 export default router;
