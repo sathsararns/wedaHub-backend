@@ -4,7 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import dns from "node:dns";
 import http from "http";
-import { Server } from "socket.io";
+import { initSocket } from "./socket.js";
 
 // Routers
 import userRouter from "./routers/userRouter.js";
@@ -25,32 +25,7 @@ const server = http.createServer(app);
    SOCKET.IO
 ============================ */
 
-const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-  },
-});
-
-export { io };
-
-io.on("connection", (socket) => {
-  console.log("Socket Connected :", socket.id);
-
-  // Customer / Provider joins own private room
-  socket.on("join-room", (userId) => {
-    if (!userId) return;
-
-    socket.join(userId);
-
-    console.log(`User ${userId} joined room`);
-  });
-
-  socket.on("disconnect", () => {
-    console.log("Socket Disconnected :", socket.id);
-  });
-});
+initSocket(server);
 
 /* ============================
    MIDDLEWARES

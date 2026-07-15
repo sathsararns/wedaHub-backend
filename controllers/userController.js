@@ -62,13 +62,31 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        message: "User not found",
+      });
     }
 
-    const isValid = await bcrypt.compare(password, user.password);
+    // ============================
+    // BLOCK CHECK
+    // ============================
+
+    if (user.isBlocked) {
+      return res.status(403).json({
+        message:
+          "Your account has been blocked. Please contact the administrator.",
+      });
+    }
+
+    const isValid = await bcrypt.compare(
+      password,
+      user.password
+    );
 
     if (!isValid) {
-      return res.status(401).json({ message: "Invalid password" });
+      return res.status(401).json({
+        message: "Invalid password",
+      });
     }
 
     const token = jwt.sign(
@@ -79,31 +97,35 @@ export const loginUser = async (req, res) => {
         isAdmin: user.isAdmin,
       },
       process.env.JWT_SECRET_KEY,
-      { expiresIn: "7d" }
+      {
+        expiresIn: "7d",
+      }
     );
 
     res.json({
-  message: "Login successful",
+      message: "Login successful",
 
-  _id: user._id,
+      _id: user._id,
 
-  token,
+      token,
 
-  role: user.role,
+      role: user.role,
 
-  isAdmin: user.isAdmin,
+      isAdmin: user.isAdmin,
 
-  email: user.email,
+      email: user.email,
 
-  firstName: user.firstName,
+      firstName: user.firstName,
 
-  lastName: user.lastName,
+      lastName: user.lastName,
 
-  image: user.image,
-});
+      image: user.image,
+    });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
 
