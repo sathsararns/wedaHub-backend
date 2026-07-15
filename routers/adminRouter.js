@@ -6,12 +6,13 @@ import authenticate from "../middlewares/authenticate.js";
 import adminOnly from "../middlewares/adminOnly.js";
 
 import { getDashboard } from "../controllers/adminController.js";
+import { getIO } from "../socket.js";
 
 const router = express.Router();
 
-// ==============================
-// Dashboard
-// ==============================
+/* ======================================
+            DASHBOARD
+====================================== */
 
 router.get(
   "/dashboard",
@@ -20,9 +21,9 @@ router.get(
   getDashboard
 );
 
-// ==============================
-// Users
-// ==============================
+/* ======================================
+              USERS
+====================================== */
 
 router.get(
   "/users",
@@ -35,6 +36,7 @@ router.get(
         .sort({ createdAt: -1 });
 
       res.json(users);
+
     } catch (err) {
       res.status(500).json({
         message: err.message,
@@ -43,9 +45,9 @@ router.get(
   }
 );
 
-// ==============================
-// Bookings
-// ==============================
+/* ======================================
+            BOOKINGS
+====================================== */
 
 router.get(
   "/bookings",
@@ -65,6 +67,7 @@ router.get(
         .sort({ createdAt: -1 });
 
       res.json(bookings);
+
     } catch (err) {
       res.status(500).json({
         message: err.message,
@@ -73,9 +76,9 @@ router.get(
   }
 );
 
-// ==============================
-// Block User
-// ==============================
+/* ======================================
+            BLOCK USER
+====================================== */
 
 router.put(
   "/block/:id",
@@ -83,16 +86,29 @@ router.put(
   adminOnly,
   async (req, res) => {
     try {
+
       const user = await User.findByIdAndUpdate(
         req.params.id,
-        { isBlocked: true },
-        { new: true }
+        {
+          isBlocked: true,
+        },
+        {
+          new: true,
+        }
       );
 
+      // 🔥 Realtime Logout
+      const io = getIO();
+
+      io.to(user._id.toString()).emit("force-logout", {
+        message: "Your account has been blocked by the administrator.",
+      });
+
       res.json({
-        message: "User blocked",
+        message: "User blocked successfully.",
         user,
       });
+
     } catch (err) {
       res.status(500).json({
         message: err.message,
@@ -101,9 +117,9 @@ router.put(
   }
 );
 
-// ==============================
-// Unblock User
-// ==============================
+/* ======================================
+            UNBLOCK USER
+====================================== */
 
 router.put(
   "/unblock/:id",
@@ -111,16 +127,29 @@ router.put(
   adminOnly,
   async (req, res) => {
     try {
+
       const user = await User.findByIdAndUpdate(
         req.params.id,
-        { isBlocked: false },
-        { new: true }
+        {
+          isBlocked: false,
+        },
+        {
+          new: true,
+        }
       );
 
+      // Optional Notification
+      const io = getIO();
+
+      io.to(user._id.toString()).emit("user-unblocked", {
+        message: "Your account has been activated by the administrator.",
+      });
+
       res.json({
-        message: "User unblocked",
+        message: "User unblocked successfully.",
         user,
       });
+
     } catch (err) {
       res.status(500).json({
         message: err.message,
