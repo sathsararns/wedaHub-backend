@@ -49,9 +49,16 @@ app.use("/api/admin", adminRouter);
 
 app.use("/api/reviews", reviewRoutes);
 
-mongoose.connect(process.env.MONGO_URI).then(() => {
-  console.log("MongoDB Connected");
-});
+// mongoose.connect(process.env.MONGO_URI).then(() => {
+//   console.log("MongoDB Connected");
+// });
+
+console.log(process.env.MONGO_URI);
+
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB Connected"))
+  .catch(err => console.error(err));
 
 const PORT = process.env.PORT || 3000;
 
