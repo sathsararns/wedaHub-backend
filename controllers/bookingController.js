@@ -1,5 +1,5 @@
 import Booking from "../models/booking.js";
-import { io } from "../index.js";
+import { getIO } from "../socket.js";
 
 /* ============================
    CUSTOMER - CREATE BOOKING
@@ -33,10 +33,12 @@ export const createBooking = async (req, res) => {
       );
 
     // Notify Provider
+    const io = getIO();
+
     io.to(providerId.toString()).emit(
-  "new-booking",
-  populatedBooking
-);
+      "new-booking",
+      populatedBooking
+    );
 
     res.status(201).json({
       message: "Booking created successfully",
@@ -151,13 +153,14 @@ export const updateBookingStatus = async (req, res) => {
         "firstName lastName phone image email"
       );
 
-    // Notify Customer
+    // Notify Customer and Provider
+    const io = getIO();
+
     io.to(booking.customerId.toString()).emit(
       "booking-status-updated",
       updatedBooking
     );
 
-    // Notify Provider
     io.to(booking.providerId.toString()).emit(
       "booking-status-updated",
       updatedBooking
@@ -175,6 +178,7 @@ export const updateBookingStatus = async (req, res) => {
     });
   }
 };
+
 /* ============================
    COMPLETE SERVICE
 ============================ */
@@ -218,15 +222,17 @@ export const completeBooking = async (req, res) => {
         "firstName lastName phone image email"
       );
 
-    io.to(booking.customerId.toString()).emit(
-  "booking-status-updated",
-  updatedBooking
-);
+    const io = getIO();
 
-io.to(booking.providerId.toString()).emit(
-  "booking-status-updated",
-  updatedBooking
-);
+    io.to(booking.customerId.toString()).emit(
+      "booking-status-updated",
+      updatedBooking
+    );
+
+    io.to(booking.providerId.toString()).emit(
+      "booking-status-updated",
+      updatedBooking
+    );
 
     res.json({
       message: "Service completed successfully",
@@ -268,13 +274,15 @@ export const cancelBooking = async (req, res) => {
 
     await booking.deleteOne();
 
+    const io = getIO();
+
     io.to(booking.providerId.toString()).emit(
-  "booking-status-updated",
-  {
-    _id: booking._id,
-    status: "cancelled",
-  }
-);
+      "booking-status-updated",
+      {
+        _id: booking._id,
+        status: "cancelled",
+      }
+    );
 
     res.json({
       message: "Booking cancelled successfully",

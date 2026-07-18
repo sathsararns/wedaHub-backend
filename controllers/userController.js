@@ -155,31 +155,29 @@ export const updateProfile = async (req, res) => {
       firstName: req.body.firstName,
       lastName: req.body.lastName,
       phone: req.body.phone,
-      address: req.body.address,
-      location: req.body.location,
+
+      // Shared Location
+      city: req.body.city,
+      district: req.body.district,
     };
 
-    // Profile Image
-    if (req.body.image !== undefined) {
-      updateData.image = req.body.image;
-    }
-
-    // Provider Fields
-    if (req.body.businessName !== undefined) {
-      updateData.businessName = req.body.businessName;
-    }
-
+    // Provider only
     if (req.body.description !== undefined) {
       updateData.description = req.body.description;
     }
 
-    if (req.body.serviceRadius !== undefined) {
-      updateData.serviceRadius = req.body.serviceRadius;
+    if (req.body.category !== undefined) {
+      updateData.category = req.body.category;
     }
 
-    // ✅ FIX
+    // Portfolio Images
     if (req.body.workImages !== undefined) {
       updateData.workImages = req.body.workImages;
+    }
+
+    // Profile Image
+    if (req.body.image !== undefined) {
+      updateData.image = req.body.image;
     }
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -191,7 +189,14 @@ export const updateProfile = async (req, res) => {
       }
     ).select("-password");
 
+    if (!updatedUser) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
     res.json(updatedUser);
+
   } catch (err) {
     console.log(err);
 
@@ -207,11 +212,12 @@ export const getProvidersByCategory = async (req, res) => {
     const { category } = req.params;
 
     const providers = await User.find({
-      role: "provider",
-      category: {
-        $regex: new RegExp(`^${category}$`, "i"),
-      },
-    }).select("-password");
+  role: "provider",
+  isBlocked: false,
+  category: {
+    $regex: new RegExp(`^${category}$`, "i"),
+  },
+}).select("-password");
 
     res.status(200).json(providers);
 
@@ -226,19 +232,26 @@ export const getProvidersByCategory = async (req, res) => {
 
 export const getProviderById = async (req, res) => {
   try {
-    const provider = await User.findById(req.params.id).select("-password");
+
+    const provider = await User.findOne({
+  _id: req.params.id,
+  role: "provider",
+  isBlocked: false,
+}).select("-password");
 
     if (!provider) {
-      return res.status(404).json({
-        message: "Provider not found",
-      });
-    }
+  return res.status(404).json({
+    message: "Provider not found",
+  });
+}
 
     res.json(provider);
 
   } catch (err) {
+
     res.status(500).json({
       message: err.message,
     });
+
   }
 };
