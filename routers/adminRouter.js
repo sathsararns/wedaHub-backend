@@ -6,6 +6,8 @@ import authenticate from "../middlewares/authenticate.js";
 import adminOnly from "../middlewares/adminOnly.js";
 
 import { getDashboard } from "../controllers/adminController.js";
+
+import { getAllMessages } from "../controllers/adminController.js";
 import { getIO } from "../socket.js";
 
 const router = express.Router();
@@ -157,5 +159,7 @@ router.put(
     }
   }
 );
+
+router.get("/messages", getAllMessages);
 
 export default router;
