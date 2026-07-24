@@ -149,19 +149,23 @@ export const getProfile = async (req, res) => {
 };
 
 // 🔥 ADD THIS BELOW getProfile
+// ==========================
+// UPDATE PROFILE
+// ==========================
+
 export const updateProfile = async (req, res) => {
   try {
+
     const updateData = {
       firstName: req.body.firstName,
       lastName: req.body.lastName,
       phone: req.body.phone,
 
-      // Shared Location
       city: req.body.city,
       district: req.body.district,
     };
 
-    // Provider only
+    // Provider fields
     if (req.body.description !== undefined) {
       updateData.description = req.body.description;
     }
@@ -170,14 +174,14 @@ export const updateProfile = async (req, res) => {
       updateData.category = req.body.category;
     }
 
-    // Portfolio Images
-    if (req.body.workImages !== undefined) {
-      updateData.workImages = req.body.workImages;
-    }
-
     // Profile Image
     if (req.body.image !== undefined) {
       updateData.image = req.body.image;
+    }
+
+    // Work Gallery
+    if (req.body.workImages !== undefined) {
+      updateData.workImages = req.body.workImages;
     }
 
     const updatedUser = await User.findByIdAndUpdate(
