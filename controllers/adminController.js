@@ -1,5 +1,6 @@
 import User from "../models/user.js";
 import Booking from "../models/booking.js";
+import ContactMessage from "../models/ContactMessage.js";
 
 // ==============================
 // Dashboard
@@ -43,6 +44,20 @@ export const getDashboard = async (req, res) => {
       recentUsers,
       recentBookings,
     });
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    });
+  }
+};
+
+export const getAllMessages = async (req, res) => {
+  try {
+    const messages = await ContactMessage.find()
+      .populate("user", "firstName lastName email")
+      .sort({ createdAt: -1 });
+
+    res.json(messages);
   } catch (err) {
     res.status(500).json({
       message: err.message,

@@ -11,6 +11,7 @@ import userRouter from "./routers/userRouter.js";
 import bookingRouter from "./routers/bookingRouter.js";
 import adminRouter from "./routers/adminRouter.js";
 import reviewRoutes from "./routers/reviewRoutes.js";
+import contactRoutes from "./routers/contactRoutes.js";
 
 // Middleware
 import authenticate from "./middlewares/authenticate.js";
@@ -55,6 +56,7 @@ app.use(authenticate);
 
 app.use("/api/bookings", bookingRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/contact", contactRoutes);
 
 /* ============================
    DATABASE
