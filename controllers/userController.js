@@ -62,13 +62,31 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        message: "User not found",
+      });
     }
 
-    const isValid = await bcrypt.compare(password, user.password);
+    // ============================
+    // BLOCK CHECK
+    // ============================
+
+    if (user.isBlocked) {
+      return res.status(403).json({
+        message:
+          "Your account has been blocked. Please contact the administrator.",
+      });
+    }
+
+    const isValid = await bcrypt.compare(
+      password,
+      user.password
+    );
 
     if (!isValid) {
-      return res.status(401).json({ message: "Invalid password" });
+      return res.status(401).json({
+        message: "Invalid password",
+      });
     }
 
     const token = jwt.sign(
@@ -79,22 +97,35 @@ export const loginUser = async (req, res) => {
         isAdmin: user.isAdmin,
       },
       process.env.JWT_SECRET_KEY,
-      { expiresIn: "7d" }
+      {
+        expiresIn: "7d",
+      }
     );
 
     res.json({
       message: "Login successful",
+
+      _id: user._id,
+
       token,
+
       role: user.role,
+
       isAdmin: user.isAdmin,
+
       email: user.email,
+
       firstName: user.firstName,
+
       lastName: user.lastName,
+
       image: user.image,
     });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
 
@@ -120,25 +151,55 @@ export const getProfile = async (req, res) => {
 // 🔥 ADD THIS BELOW getProfile
 export const updateProfile = async (req, res) => {
   try {
+    const updateData = {
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      phone: req.body.phone,
+
+      // Shared Location
+      city: req.body.city,
+      district: req.body.district,
+    };
+
+    // Provider only
+    if (req.body.description !== undefined) {
+      updateData.description = req.body.description;
+    }
+
+    if (req.body.category !== undefined) {
+      updateData.category = req.body.category;
+    }
+
+    // Portfolio Images
+    if (req.body.workImages !== undefined) {
+      updateData.workImages = req.body.workImages;
+    }
+
+    // Profile Image
+    if (req.body.image !== undefined) {
+      updateData.image = req.body.image;
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
-      {
-        firstName: req.body.firstName,
-        lastName: req.body.lastName,
-        phone: req.body.phone,
-        address: req.body.address,
-        location: req.body.location,
-        image: req.body.image || undefined,
-      },
+      updateData,
       {
         new: true,
+        runValidators: true,
       }
     ).select("-password");
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
 
     res.json(updatedUser);
 
   } catch (err) {
+    console.log(err);
+
     res.status(500).json({
       message: err.message,
     });
@@ -151,11 +212,12 @@ export const getProvidersByCategory = async (req, res) => {
     const { category } = req.params;
 
     const providers = await User.find({
-      role: "provider",
-      category: {
-        $regex: new RegExp(`^${category}$`, "i"),
-      },
-    }).select("-password");
+  role: "provider",
+  isBlocked: false,
+  category: {
+    $regex: new RegExp(`^${category}$`, "i"),
+  },
+}).select("-password");
 
     res.status(200).json(providers);
 
@@ -170,19 +232,26 @@ export const getProvidersByCategory = async (req, res) => {
 
 export const getProviderById = async (req, res) => {
   try {
-    const provider = await User.findById(req.params.id).select("-password");
+
+    const provider = await User.findOne({
+  _id: req.params.id,
+  role: "provider",
+  isBlocked: false,
+}).select("-password");
 
     if (!provider) {
-      return res.status(404).json({
-        message: "Provider not found",
-      });
-    }
+  return res.status(404).json({
+    message: "Provider not found",
+  });
+}
 
     res.json(provider);
 
   } catch (err) {
+
     res.status(500).json({
       message: err.message,
     });
+
   }
 };

@@ -38,29 +38,20 @@ const userSchema = new mongoose.Schema(
       default: "customer",
     },
 
-    // =========================
-    // Customer
-    // =========================
-
-    address: {
+    // Shared Location
+    city: {
       type: String,
       default: "",
+      trim: true,
     },
 
-    location: {
+    district: {
       type: String,
       default: "",
+      trim: true,
     },
 
-    // =========================
-    // Provider
-    // =========================
-
-    businessName: {
-      type: String,
-      default: "",
-    },
-
+    // Provider only
     description: {
       type: String,
       default: "",
@@ -71,12 +62,7 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
-    serviceRadius: {
-      type: Number,
-      default: 0,
-    },
-
-    // ⭐ Rating System
+    // Rating
     rating: {
       type: Number,
       default: 0,
@@ -87,10 +73,18 @@ const userSchema = new mongoose.Schema(
     reviews: {
       type: Number,
       default: 0,
-      min: 0,
     },
 
-    // =========================
+    // Portfolio Images
+    workImages: {
+      type: [String],
+      default: [],
+    },
+
+    image: {
+      type: String,
+      default: "/default-profile.png",
+    },
 
     isAdmin: {
       type: Boolean,
@@ -106,17 +100,12 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-
-    image: {
-      type: String,
-      default: "/default-profile.png",
-    },
   },
   {
     timestamps: true,
   }
 );
 
+// ✅ මෙන්න හරි export එක
 const User = mongoose.model("User", userSchema);
-
 export default User;

@@ -1,113 +1,208 @@
 import Booking from "../models/booking.js";
-import { io } from "../index.js";
+import { getIO } from "../socket.js";
 
-// CREATE BOOKING (Customer)
+/* ============================
+   CUSTOMER - CREATE BOOKING
+============================ */
 export const createBooking = async (req, res) => {
   try {
-    const booking = new Booking({
+    const {
+      providerId,
+      serviceName,
+      description,
+      date,
+    } = req.body;
+
+    const booking = await Booking.create({
       customerId: req.user.id,
-      providerId: req.body.providerId,
-      serviceName: req.body.serviceName,
-      description: req.body.description,
-      date: req.body.date,
+      providerId,
+      serviceName,
+      description,
+      date,
+      status: "pending",
     });
 
-    await booking.save();
+    const populatedBooking = await Booking.findById(booking._id)
+      .populate(
+        "providerId",
+        "firstName lastName category location phone image businessName"
+      )
+      .populate(
+        "customerId",
+        "firstName lastName phone image email"
+      );
+
+    // Notify Provider
+    const io = getIO();
+
+    io.to(providerId.toString()).emit(
+      "new-booking",
+      populatedBooking
+    );
 
     res.status(201).json({
       message: "Booking created successfully",
-      booking,
+      booking: populatedBooking,
     });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
 
-// GET BOOKINGS (Provider)
-export const getProviderBookings = async (req, res) => {
-  try {
-    const bookings = await Booking.find({
-      providerId: req.user.id,
-    }).populate("customerId", "email firstName lastName");
-
-    res.json(bookings);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// UPDATE STATUS (Provider)
-export const updateBookingStatus = async (req, res) => {
-  try {
-    const booking = await Booking.findByIdAndUpdate(
-      req.params.id,
-      { status: req.body.status },
-      { new: true }
-    );
-
-    // 🔥 REALTIME NOTIFICATION
-    io.emit("booking-updated", booking);
-
-    res.json({
-      message: "Updated",
-      booking,
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
     });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
 };
 
+/* ============================
+   CUSTOMER BOOKINGS
+============================ */
 export const getCustomerBookings = async (req, res) => {
   try {
     const bookings = await Booking.find({
       customerId: req.user.id,
-    }).populate("providerId", "firstName lastName category");
+    })
+      .populate(
+        "providerId",
+        "firstName lastName category location phone image businessName"
+      )
+      .sort({
+        createdAt: -1,
+      });
 
     res.json(bookings);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    });
   }
 };
 
-export const cancelBooking = async (req, res) => {
+/* ============================
+   PROVIDER BOOKINGS
+============================ */
+export const getProviderBookings = async (req, res) => {
   try {
-    const booking = await Booking.findById(req.params.id);
+    console.log("Logged Provider ID:", req.user.id);
 
-    if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
-    }
+    const bookings = await Booking.find({
+      providerId: req.user.id,
+    })
+      .populate(
+        "customerId",
+        "firstName lastName phone image email"
+      )
+      .sort({ createdAt: -1 });
 
-    // only owner can cancel
-    if (booking.customerId.toString() !== req.user.id) {
-      return res.status(403).json({ message: "Not allowed" });
-    }
+    console.log("Provider Bookings:", bookings);
 
-    // only pending can be cancelled
-    if (booking.status !== "pending") {
+    res.json(bookings);
+
+  } catch (err) {
+    console.log(err);
+
+    res.status(500).json({
+      message: err.message,
+    });
+  }
+};
+
+/* ============================
+   ACCEPT / REJECT
+============================ */
+export const updateBookingStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!["accepted", "rejected"].includes(status)) {
       return res.status(400).json({
-        message: "Cannot cancel after provider action",
+        message: "Invalid status",
       });
     }
 
-    await Booking.findByIdAndDelete(req.params.id);
-
-    res.json({ message: "Booking cancelled successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-export const completeBooking = async (req, res) => {
-  try {
     const booking = await Booking.findById(req.params.id);
 
     if (!booking) {
-      return res.status(404).json({ message: "Not found" });
+      return res.status(404).json({
+        message: "Booking not found",
+      });
     }
 
-    // only provider can complete
     if (booking.providerId.toString() !== req.user.id) {
-      return res.status(403).json({ message: "Not allowed" });
+      return res.status(403).json({
+        message: "Unauthorized",
+      });
+    }
+
+    if (booking.status !== "pending") {
+      return res.status(400).json({
+        message: "Booking already processed",
+      });
+    }
+
+    booking.status = status;
+
+    await booking.save();
+
+    const updatedBooking = await Booking.findById(booking._id)
+      .populate(
+        "providerId",
+        "firstName lastName category location phone image businessName"
+      )
+      .populate(
+        "customerId",
+        "firstName lastName phone image email"
+      );
+
+    // Notify Customer and Provider
+    const io = getIO();
+
+    io.to(booking.customerId.toString()).emit(
+      "booking-status-updated",
+      updatedBooking
+    );
+
+    io.to(booking.providerId.toString()).emit(
+      "booking-status-updated",
+      updatedBooking
+    );
+
+    // ✅ Response
+    return res.json({
+      message: `Booking ${status} successfully`,
+      booking: updatedBooking,
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      message: err.message,
+    });
+  }
+};
+
+/* ============================
+   COMPLETE SERVICE
+============================ */
+export const completeBooking = async (req, res) => {
+  try {
+
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({
+        message: "Booking not found",
+      });
+    }
+
+    if (booking.providerId.toString() !== req.user.id) {
+      return res.status(403).json({
+        message: "Unauthorized",
+      });
+    }
+
+    if (booking.status !== "accepted") {
+      return res.status(400).json({
+        message: "Booking must be accepted first",
+      });
     }
 
     booking.status = "completed";
@@ -115,32 +210,117 @@ export const completeBooking = async (req, res) => {
 
     await booking.save();
 
+    const updatedBooking = await Booking.findById(
+      booking._id
+    )
+      .populate(
+        "providerId",
+        "firstName lastName category location phone image businessName"
+      )
+      .populate(
+        "customerId",
+        "firstName lastName phone image email"
+      );
+
+    const io = getIO();
+
+    io.to(booking.customerId.toString()).emit(
+      "booking-status-updated",
+      updatedBooking
+    );
+
+    io.to(booking.providerId.toString()).emit(
+      "booking-status-updated",
+      updatedBooking
+    );
+
     res.json({
-      message: "Service marked as completed",
-      booking,
+      message: "Service completed successfully",
+      booking: updatedBooking,
     });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    });
   }
 };
 
+/* ============================
+   CUSTOMER CANCEL
+============================ */
+export const cancelBooking = async (req, res) => {
+  try {
+
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({
+        message: "Booking not found",
+      });
+    }
+
+    if (booking.customerId.toString() !== req.user.id) {
+      return res.status(403).json({
+        message: "Unauthorized",
+      });
+    }
+
+    if (booking.status !== "pending") {
+      return res.status(400).json({
+        message: "Cannot cancel after provider action",
+      });
+    }
+
+    await booking.deleteOne();
+
+    const io = getIO();
+
+    io.to(booking.providerId.toString()).emit(
+      "booking-status-updated",
+      {
+        _id: booking._id,
+        status: "cancelled",
+      }
+    );
+
+    res.json({
+      message: "Booking cancelled successfully",
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    });
+  }
+};
+
+/* ============================
+   CUSTOMER RATING
+============================ */
 export const addRating = async (req, res) => {
   try {
+
     const { rating, review } = req.body;
 
     const booking = await Booking.findById(req.params.id);
 
     if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
+      return res.status(404).json({
+        message: "Booking not found",
+      });
     }
 
-    // only customer can rate completed booking
     if (booking.customerId.toString() !== req.user.id) {
-      return res.status(403).json({ message: "Not allowed" });
+      return res.status(403).json({
+        message: "Unauthorized",
+      });
     }
 
     if (booking.status !== "completed") {
-      return res.status(400).json({ message: "Service not completed yet" });
+      return res.status(400).json({
+        message: "Service not completed",
+      });
     }
 
     booking.rating = rating;
@@ -152,29 +332,48 @@ export const addRating = async (req, res) => {
       message: "Rating submitted successfully",
       booking,
     });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    });
   }
 };
 
+/* ============================
+   PROVIDER RATING
+============================ */
 export const getProviderRating = async (req, res) => {
-  const providerId = req.params.id;
+  try {
 
-  const bookings = await Booking.find({
-    providerId,
-    rating: { $ne: null }
-  });
+    const bookings = await Booking.find({
+      providerId: req.params.id,
+      rating: {
+        $ne: null,
+      },
+    });
 
-  if (bookings.length === 0) {
-    return res.json({ average: 0, totalReviews: 0 });
+    if (bookings.length === 0) {
+      return res.json({
+        average: 0,
+        totalReviews: 0,
+      });
+    }
+
+    const average =
+      bookings.reduce(
+        (sum, booking) => sum + booking.rating,
+        0
+      ) / bookings.length;
+
+    res.json({
+      average: Number(average.toFixed(1)),
+      totalReviews: bookings.length,
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    });
   }
-
-  const avg =
-    bookings.reduce((sum, b) => sum + b.rating, 0) /
-    bookings.length;
-
-  res.json({
-    average: avg.toFixed(1),
-    totalReviews: bookings.length
-  });
 };
