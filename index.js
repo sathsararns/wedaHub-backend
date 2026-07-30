@@ -12,6 +12,7 @@ import bookingRouter from "./routers/bookingRouter.js";
 import adminRouter from "./routers/adminRouter.js";
 import reviewRoutes from "./routers/reviewRoutes.js";
 import contactRoutes from "./routers/contactRoutes.js";
+import providerRouter from "./routers/providerRouter.js";
 
 // Middleware
 import authenticate from "./middlewares/authenticate.js";
@@ -47,16 +48,18 @@ app.use(express.json());
 
 app.use("/api/users", userRouter);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/providers", providerRouter);
+
+// Booking router එකම mount කරනවා.
+// Authentication router එක ඇතුලේ handle වෙනවා.
+app.use("/api/bookings", bookingRouter);
 
 /* ============================
    PROTECTED ROUTES
 ============================ */
 
-app.use(authenticate);
-
-app.use("/api/bookings", bookingRouter);
-app.use("/api/admin", adminRouter);
-app.use("/api/contact", contactRoutes);
+app.use("/api/admin", authenticate, adminRouter);
+app.use("/api/contact", authenticate, contactRoutes);
 
 /* ============================
    DATABASE

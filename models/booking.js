@@ -5,7 +5,7 @@ const bookingSchema = new mongoose.Schema(
     customerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      default: null,
     },
 
     providerId: {
@@ -16,7 +16,7 @@ const bookingSchema = new mongoose.Schema(
 
     serviceName: {
       type: String,
-      required: true,
+      default: "",
     },
 
     description: {
@@ -29,10 +29,21 @@ const bookingSchema = new mongoose.Schema(
       required: true,
     },
 
+    time: {
+      type: String,
+      default: "",
+    },
+
     status: {
       type: String,
       enum: ["pending", "accepted", "rejected", "completed"],
       default: "pending",
+    },
+
+    source: {
+      type: String,
+      enum: ["web", "ai"],
+      default: "web",
     },
 
     serviceCompleted: {
@@ -57,4 +68,6 @@ const bookingSchema = new mongoose.Schema(
   }
 );
 
-export default mongoose.model("Booking", bookingSchema);
+const Booking = mongoose.model("Booking", bookingSchema);
+
+export default Booking;

@@ -377,3 +377,112 @@ export const getProviderRating = async (req, res) => {
     });
   }
 };
+
+/* ============================
+   AI BOOKING
+============================ */
+export const createAIBooking = async (req, res) => {
+  console.log("===== AI BOOKING BODY =====");
+  console.log(req.body);
+
+  try {
+    const {
+      providerId,
+      customerId,
+      service,
+      date,
+      time,
+    } = req.body;
+
+    // Validation
+    if (!providerId) {
+      return res.status(400).json({
+        message: "providerId is required",
+      });
+    }
+
+    if (!date) {
+      return res.status(400).json({
+        message: "date is required",
+      });
+    }
+
+    if (!time) {
+      return res.status(400).json({
+        message: "time is required",
+      });
+    }
+
+    const booking = await Booking.create({
+      customerId: customerId || null,
+      providerId,
+      serviceName: service || "General Service",
+      date: new Date(date),
+      time,
+      status: "pending",
+      source: "ai",
+    });
+
+    const populatedBooking = await Booking.findById(booking._id)
+      .populate(
+        "providerId",
+        "firstName lastName category phone image city district"
+      )
+      .populate(
+        "customerId",
+        "firstName lastName phone email image"
+      );
+
+    // Notify provider if connected
+    const io = getIO();
+
+    io.to(providerId.toString()).emit(
+      "new-booking",
+      populatedBooking
+    );
+
+    return res.status(201).json({
+      message: "AI booking created successfully",
+      booking: populatedBooking,
+    });
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      message: err.message,
+    });
+  }
+};
+
+/* ============================
+   GET BOOKING BY ID (AI)
+============================ */
+export const getBookingById = async (req, res) => {
+  try {
+
+    const booking = await Booking.findById(req.params.id)
+      .populate(
+        "providerId",
+        "firstName lastName phone city district category image"
+      )
+      .populate(
+        "customerId",
+        "firstName lastName phone email image"
+      );
+
+    if (!booking) {
+      return res.status(404).json({
+        message: "Booking not found",
+      });
+    }
+
+    return res.json(booking);
+
+  } catch (err) {
+
+    return res.status(500).json({
+      message: err.message,
+    });
+
+  }
+};
