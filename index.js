@@ -12,6 +12,8 @@ import bookingRouter from "./routers/bookingRouter.js";
 import adminRouter from "./routers/adminRouter.js";
 import reviewRoutes from "./routers/reviewRoutes.js";
 import contactRoutes from "./routers/contactRoutes.js";
+import providerRouter from "./routers/providerRouter.js";
+import aiRouter from "./routers/aiRouter.js";
 
 // Middleware
 import authenticate from "./middlewares/authenticate.js";
@@ -39,11 +41,21 @@ app.use(
 
 app.use(express.json());
 
+// DEBUG
+app.use((req, res, next) => {
+  console.log("=================================");
+  console.log(req.method, req.url);
+  console.log("Content-Type:", req.headers["content-type"]);
+  next();
+});
+
 /* ============================
    PUBLIC ROUTES
 ============================ */
 app.use("/api/users", userRouter);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/providers", providerRouter);
+app.use("/api/ai", aiRouter);
 
 /* ============================
    PROTECTED ROUTES
@@ -74,5 +86,5 @@ mongoose
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on ${PORT}`);
 });

@@ -2,11 +2,19 @@ import mongoose from "mongoose";
 
 const bookingSchema = new mongoose.Schema(
   {
+    // =====================================================
+    // CUSTOMER
+    // =====================================================
+
     customerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      default: null,
     },
+
+    // =====================================================
+    // PROVIDER
+    // =====================================================
 
     providerId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -14,31 +22,98 @@ const bookingSchema = new mongoose.Schema(
       required: true,
     },
 
+    // =====================================================
+    // SERVICE
+    // =====================================================
+
     serviceName: {
       type: String,
       required: true,
+      trim: true,
     },
 
+    // Description of the work requested by customer
     description: {
       type: String,
-      default: "",
+      required: true,
+      trim: true,
     },
+
+    // =====================================================
+    // SERVICE LOCATION
+    // =====================================================
+
+    city: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    // =====================================================
+    // BOOKING DATE
+    // =====================================================
 
     date: {
       type: Date,
       required: true,
     },
 
+    // =====================================================
+    // BOOKING TIME
+    // =====================================================
+    // Optional.
+    //
+    // AI booking does NOT require a time.
+    // Web booking can optionally use this field.
+    // Example:
+    // "10:00 AM"
+    // "14:00"
+    //
+    // =====================================================
+
+    time: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    // =====================================================
+    // BOOKING STATUS
+    // =====================================================
+
     status: {
       type: String,
-      enum: ["pending", "accepted", "rejected", "completed"],
+      enum: [
+        "pending",
+        "accepted",
+        "rejected",
+        "completed",
+      ],
       default: "pending",
     },
+
+    // =====================================================
+    // BOOKING SOURCE
+    // =====================================================
+
+    source: {
+      type: String,
+      enum: ["web", "ai"],
+      default: "web",
+    },
+
+    // =====================================================
+    // SERVICE COMPLETION
+    // =====================================================
 
     serviceCompleted: {
       type: Boolean,
       default: false,
     },
+
+    // =====================================================
+    // CUSTOMER RATING
+    // =====================================================
 
     rating: {
       type: Number,
@@ -47,9 +122,14 @@ const bookingSchema = new mongoose.Schema(
       max: 5,
     },
 
+    // =====================================================
+    // CUSTOMER REVIEW
+    // =====================================================
+
     review: {
       type: String,
       default: "",
+      trim: true,
     },
   },
   {
@@ -57,4 +137,14 @@ const bookingSchema = new mongoose.Schema(
   }
 );
 
-export default mongoose.model("Booking", bookingSchema);
+
+// =========================================================
+// MODEL
+// =========================================================
+
+const Booking = mongoose.model(
+  "Booking",
+  bookingSchema
+);
+
+export default Booking;
