@@ -13,6 +13,7 @@ import adminRouter from "./routers/adminRouter.js";
 import reviewRoutes from "./routers/reviewRoutes.js";
 import contactRoutes from "./routers/contactRoutes.js";
 import providerRouter from "./routers/providerRouter.js";
+import aiRouter from "./routers/aiRouter.js";
 
 // Middleware
 import authenticate from "./middlewares/authenticate.js";
@@ -23,15 +24,7 @@ dns.setServers(["8.8.8.8", "1.1.1.1"]);
 const app = express();
 const server = http.createServer(app);
 
-/* ============================
-   SOCKET.IO
-============================ */
-
 initSocket(server);
-
-/* ============================
-   MIDDLEWARES
-============================ */
 
 app.use(
   cors({
@@ -40,46 +33,32 @@ app.use(
   })
 );
 
-app.use(express.json());
+// DEBUG
+app.use((req, res, next) => {
+  console.log("=================================");
+  console.log(req.method, req.url);
+  console.log("Content-Type:", req.headers["content-type"]);
+  next();
+});
 
-/* ============================
-   PUBLIC ROUTES
-============================ */
+app.use(express.json());
 
 app.use("/api/users", userRouter);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/providers", providerRouter);
-
-// Booking router එකම mount කරනවා.
-// Authentication router එක ඇතුලේ handle වෙනවා.
+app.use("/api/ai", aiRouter);
 app.use("/api/bookings", bookingRouter);
-
-/* ============================
-   PROTECTED ROUTES
-============================ */
 
 app.use("/api/admin", authenticate, adminRouter);
 app.use("/api/contact", authenticate, contactRoutes);
 
-/* ============================
-   DATABASE
-============================ */
-
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("MongoDB Connected");
-  })
-  .catch((err) => {
-    console.log(err);
-  });
-
-/* ============================
-   SERVER
-============================ */
+  .then(() => console.log("MongoDB Connected"))
+  .catch(console.error);
 
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on ${PORT}`);
 });

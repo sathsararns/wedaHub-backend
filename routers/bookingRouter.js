@@ -17,41 +17,48 @@ import {
 const router = express.Router();
 
 /* ============================
-   AI Booking (PUBLIC)
+   AI Booking
 ============================ */
 
 router.post("/ai", createAIBooking);
 
 /* ============================
-   Get Booking By ID (PUBLIC)
-============================ */
-
-router.get("/:id", getBookingById);
-
-/* ============================
-   Customer (PROTECTED)
+   Customer
 ============================ */
 
 router.post("/", authenticate, createBooking);
+
 router.get("/customer", authenticate, getCustomerBookings);
-router.delete("/:id", authenticate, cancelBooking);
 
 /* ============================
-   Provider (PROTECTED)
+   Provider
 ============================ */
 
 router.get("/provider", authenticate, getProviderBookings);
+
 router.put("/:id", authenticate, updateBookingStatus);
+
 router.put("/complete/:id", authenticate, completeBooking);
 
 /* ============================
    Rating
 ============================ */
 
-// Public
 router.get("/rating/:id", getProviderRating);
 
-// Protected
 router.put("/rate/:id", authenticate, addRating);
+
+/* ============================
+   Cancel
+============================ */
+
+router.delete("/:id", authenticate, cancelBooking);
+
+/* ============================
+   Get Booking By ID
+   (ALWAYS LAST)
+============================ */
+
+router.get("/:id", getBookingById);
 
 export default router;
