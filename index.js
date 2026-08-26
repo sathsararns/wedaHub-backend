@@ -24,14 +24,22 @@ dns.setServers(["8.8.8.8", "1.1.1.1"]);
 const app = express();
 const server = http.createServer(app);
 
+/* ============================
+   SOCKET.IO
+============================ */
 initSocket(server);
 
+/* ============================
+   MIDDLEWARES
+============================ */
 app.use(
   cors({
     origin: "http://localhost:5173",
     credentials: true,
   })
 );
+
+app.use(express.json());
 
 // DEBUG
 app.use((req, res, next) => {
@@ -41,22 +49,40 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json());
-
+/* ============================
+   PUBLIC ROUTES
+============================ */
 app.use("/api/users", userRouter);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/providers", providerRouter);
 app.use("/api/ai", aiRouter);
-app.use("/api/bookings", bookingRouter);
 
-app.use("/api/admin", authenticate, adminRouter);
-app.use("/api/contact", authenticate, contactRoutes);
+/* ============================
+   PROTECTED ROUTES
+============================ */
+app.use(authenticate);
+
+app.use("/api/bookings", bookingRouter);
+app.use("/api/admin", adminRouter);
+app.use("/api/contact", contactRoutes);
+
+/* ============================
+   DATABASE
+============================ */
+console.log("Connecting to URI:", process.env.MONGO_URI);
 
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch(console.error);
+  .then(() => {
+    console.log("MongoDB Connected Successfully!");
+  })
+  .catch((err) => {
+    console.error("MongoDB Connection Error:", err);
+  });
 
+/* ============================
+   SERVER
+============================ */
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
