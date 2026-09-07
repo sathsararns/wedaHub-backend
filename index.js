@@ -24,14 +24,8 @@ dns.setServers(["8.8.8.8", "1.1.1.1"]);
 const app = express();
 const server = http.createServer(app);
 
-/* ============================
-   SOCKET.IO
-============================ */
 initSocket(server);
 
-/* ============================
-   MIDDLEWARES
-============================ */
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -41,7 +35,6 @@ app.use(
 
 app.use(express.json());
 
-// DEBUG
 app.use((req, res, next) => {
   console.log("=================================");
   console.log(req.method, req.url);
@@ -49,26 +42,20 @@ app.use((req, res, next) => {
   next();
 });
 
-/* ============================
-   PUBLIC ROUTES
-============================ */
+/* PUBLIC ROUTES */
 app.use("/api/users", userRouter);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/providers", providerRouter);
 app.use("/api/ai", aiRouter);
 
-/* ============================
-   PROTECTED ROUTES
-============================ */
-app.use(authenticate);
-
+/* BOOKING ROUTES */
 app.use("/api/bookings", bookingRouter);
-app.use("/api/admin", adminRouter);
-app.use("/api/contact", contactRoutes);
 
-/* ============================
-   DATABASE
-============================ */
+/* PROTECTED ROUTES */
+app.use("/api/admin", authenticate, adminRouter);
+app.use("/api/contact", authenticate, contactRoutes);
+
+/* DATABASE */
 console.log("Connecting to URI:", process.env.MONGO_URI);
 
 mongoose
@@ -80,9 +67,6 @@ mongoose
     console.error("MongoDB Connection Error:", err);
   });
 
-/* ============================
-   SERVER
-============================ */
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
