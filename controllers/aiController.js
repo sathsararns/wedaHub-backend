@@ -1,8 +1,7 @@
 import {
   chatWithAI,
-  createAIBooking,
-  getBookingStatus as bookingStatus,
-  getRecommendations as recommendationService,
+  streamChat,
+  resetChatMemory,
 } from "../services/aiService.js";
 
 // =========================
@@ -36,61 +35,74 @@ export const chat = async (req, res) => {
 };
 
 // =========================
-// Booking
+// Chat (streaming)
 // =========================
+// Pipes the AI service's SSE stream straight through to the client —
+// no buffering, no re-encoding, so the browser sees the same chunks the
+// AI service wrote as soon as they arrive.
 
-export const createBooking = async (req, res) => {
+export const chatStream = async (req, res) => {
   try {
-    const result = await createAIBooking(req.body);
+    const { message, customer_id, customerId } = req.body;
 
-    res.json(result);
-  } catch (err) {
-    console.error(err);
+    const customer = customer_id || customerId || null;
 
-    res.status(500).json({
-      success: false,
-      message: err.message,
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        message: "Message is required",
+      });
+    }
+
+    const upstream = await streamChat(message, customer);
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    upstream.on("error", (err) => {
+      console.error("AI STREAM UPSTREAM ERROR:", err);
+      res.end();
     });
+
+    req.on("close", () => {
+      upstream.destroy();
+    });
+
+    upstream.pipe(res);
+  } catch (err) {
+    console.error("AI CHAT STREAM ERROR:", err);
+
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: err.message,
+      });
+    } else {
+      res.end();
+    }
   }
 };
 
 // =========================
-// Booking Status
+// Chat Reset
 // =========================
 
-export const getBookingStatus = async (req, res) => {
+export const resetChat = async (req, res) => {
   try {
-    const result = await bookingStatus(req.params.id);
+    const { customer_id, customerId, session_id, sessionId } = req.body;
 
-    res.json(result);
+    const customer = customer_id || customerId || null;
+    const session = session_id || sessionId || null;
+
+    const result = await resetChatMemory(customer, session);
+
+    return res.json(result);
   } catch (err) {
-    console.error(err);
+    console.error("AI CHAT RESET ERROR:", err);
 
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
-  }
-};
-
-// =========================
-// Recommendation
-// =========================
-
-export const getRecommendations = async (req, res) => {
-  try {
-    const { service, location } = req.body;
-
-    const result = await recommendationService(
-      service,
-      location
-    );
-
-    res.json(result);
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: err.message,
     });

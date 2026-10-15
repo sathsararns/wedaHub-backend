@@ -33,79 +33,57 @@ export async function chatWithAI(
 }
 
 // =============================
-// Booking
+// Chat (streaming)
 // =============================
+// Bridges to the AI service's POST /chat/stream and hands back the raw
+// Node stream so the controller can pipe it straight through to the
+// client without buffering the whole response first.
 
-export async function createAIBooking(
-  bookingData
+export async function streamChat(
+  message,
+  customerId = null
 ) {
-  try {
-    const { data } = await axios.post(
-      `${AI_BASE_URL}/booking`,
-      bookingData
-    );
+  const response = await axios.post(
+    `${AI_BASE_URL}/chat/stream`,
+    {
+      message,
+      customer_id: customerId,
+    },
+    {
+      responseType: "stream",
+    }
+  );
 
-    return data;
-  } catch (error) {
-    console.error(error);
-
-    throw new Error(
-      error.response?.data?.detail ||
-        error.response?.data?.message ||
-        "Booking failed"
-    );
-  }
+  return response.data;
 }
 
 // =============================
-// Booking Status
+// Chat Reset
 // =============================
+// Bridges to the AI service's POST /chat/reset, which clears that
+// session's in-memory conversation state (app/memory/conversation_memory.py).
 
-export async function getBookingStatus(
-  bookingId
-) {
-  try {
-    const { data } = await axios.get(
-      `${AI_BASE_URL}/booking/${bookingId}`
-    );
-
-    return data;
-  } catch (error) {
-    console.error(error);
-
-    throw new Error(
-      error.response?.data?.detail ||
-        error.response?.data?.message ||
-        "Booking status failed"
-    );
-  }
-}
-
-// =============================
-// Recommendations
-// =============================
-
-export async function getRecommendations(
-  service,
-  location
+export async function resetChatMemory(
+  customerId = null,
+  sessionId = null
 ) {
   try {
     const { data } = await axios.post(
-      `${AI_BASE_URL}/recommend`,
+      `${AI_BASE_URL}/chat/reset`,
       {
-        service,
-        location,
+        customer_id: customerId,
+        session_id: sessionId,
       }
     );
 
     return data;
   } catch (error) {
-    console.error(error);
+    console.error("AI Service:", error.message);
 
     throw new Error(
       error.response?.data?.detail ||
         error.response?.data?.message ||
-        "Recommendation failed"
+        "Cannot reset AI chat memory"
     );
   }
 }
