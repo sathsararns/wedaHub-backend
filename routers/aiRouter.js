@@ -1,19 +1,12 @@
 import express from "express";
-import {
-  chat,
-  createBooking,
-  getBookingStatus,
-  getRecommendations,
-} from "../controllers/aiController.js";
+import { chat, chatStream, resetChat } from "../controllers/aiController.js";
 
 const router = express.Router();
 
 router.post("/chat", chat);
 
-router.post("/booking", createBooking);
+router.post("/chat/stream", chatStream);
 
-router.get("/booking/:id", getBookingStatus);
-
-router.post("/recommend", getRecommendations);
+router.post("/chat/reset", resetChat);
 
 export default router;
