@@ -6,7 +6,7 @@ both talk to this backend — it is the only writer to the database.
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 22.x
 - Reachable MongoDB (Atlas cloud by default — no local DB needed)
 
 ## Setup
@@ -21,15 +21,31 @@ Create a `.env` file in this directory:
 MONGO_URI="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/?appName=Cluster0"
 JWT_SECRET_KEY="<long-random-secret>"
 AI_SERVICE_URL=http://localhost:8000
+FRONTEND_URL=http://localhost:5173
 ```
 
 ## Run
 
 ```bash
-npm start        # nodemon index.js — auto-reloads on change
+npm start        # production: node index.js
+npm run dev      # development: nodemon index.js
 ```
 
-Expect `MongoDB Connected Successfully!` and `Server running on 3000`.
+The server connects to MongoDB before listening. `GET /health` returns 200 when
+MongoDB is connected, or 503 when disconnected.
+
+## Deploy to Render
+
+Use the included `render.yaml` as a Blueprint, or create a Free Node web service
+with build command `npm ci`, start command `npm start`, and health path `/health`.
+Commit `package-lock.json`. Set `NODE_ENV=production`, `MONGO_URI`,
+`JWT_SECRET_KEY`, `FRONTEND_URL` (Vercel origin), and `AI_SERVICE_URL` (public
+FastAPI URL). Render provides `PORT`. Use `.env.example` for local settings.
+
+`FRONTEND_URL` accepts comma-separated exact origins and controls both REST and
+Socket.IO CORS. Production startup rejects missing deployment settings.
+
+See [the complete deployment guide](../DEPLOYMENT.md) in the WedaHub workspace.
 
 ## Test
 
@@ -60,7 +76,9 @@ Auth: JWT bearer tokens, verified in `middlewares/authenticate.js`;
 
 ```text
 backend/
-  index.js               App entry: middleware, route mounts, Mongo connect, listen
+  index.js               Environment validation, Mongo connect, listen
+  app.js                 Express middleware, health checks, route mounts
+  config.js              Environment loading and shared CORS settings
   socket.js              Socket.IO setup
   routers/               One router per resource (user, booking, provider, review, ai, admin, contact)
   controllers/           Request handlers per resource
@@ -72,8 +90,9 @@ backend/
 
 ## Troubleshooting
 
-- `MongoDB Connection Error` — check `MONGO_URI`, Atlas IP whitelist, firewall/VPN.
-  This app forces DNS to `8.8.8.8`/`1.1.1.1` (see `index.js`).
+- MongoDB connection failure — check `MONGO_URI`, Atlas network access, firewall/VPN.
+  System DNS is used by default. For local DNS issues, optionally set
+  `DNS_SERVERS=8.8.8.8,1.1.1.1`.
 - AI chat 500s — is `ai-service` running at `AI_SERVICE_URL`?
-- Frontend CORS errors — `origin` is allowlisted as `http://localhost:5173` in `index.js`;
-  keep the frontend on that port.
+- Frontend CORS errors — set `FRONTEND_URL` to the frontend's exact origin. Local
+  development defaults to `http://localhost:5173`.

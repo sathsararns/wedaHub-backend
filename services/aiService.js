@@ -1,7 +1,8 @@
 import axios from "axios";
+import "dotenv/config";
 
 const AI_BASE_URL =
-  process.env.AI_SERVICE_URL || "http://localhost:8000";
+  (process.env.AI_SERVICE_URL || "http://localhost:8000").replace(/\/+$/, "");
 
 // =============================
 // Chat

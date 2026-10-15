@@ -16,8 +16,6 @@ function isStrongPassword(password) {
 // REGISTER
 export const createUser = async (req, res) => {
   try {
-    console.log("BODY:", req.body);
-
     const { email, password } = req.body;
 
     // ✅ FIX: define existing user

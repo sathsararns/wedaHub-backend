@@ -1,74 +1,35 @@
-import express from "express";
+import { validateEnvironment } from "./config.js";
 import mongoose from "mongoose";
-import cors from "cors";
-import dotenv from "dotenv";
 import dns from "node:dns";
 import http from "http";
 import { initSocket } from "./socket.js";
+import { createApp } from "./app.js";
 
-// Routers
-import userRouter from "./routers/userRouter.js";
-import bookingRouter from "./routers/bookingRouter.js";
-import adminRouter from "./routers/adminRouter.js";
-import reviewRoutes from "./routers/reviewRoutes.js";
-import contactRoutes from "./routers/contactRoutes.js";
-import providerRouter from "./routers/providerRouter.js";
-import aiRouter from "./routers/aiRouter.js";
+async function start() {
+  validateEnvironment();
 
-// Middleware
-import authenticate from "./middlewares/authenticate.js";
+  // Use the host's DNS by default. Local networks can opt into a DNS override.
+  if (process.env.DNS_SERVERS) {
+    dns.setServers(process.env.DNS_SERVERS.split(",").map((value) => value.trim()));
+  }
 
-dotenv.config();
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
+  console.log("Connecting to MongoDB...");
+  try {
+    await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+  } catch {
+    // Never print the URI: it includes the database username and password.
+    throw new Error("MongoDB connection failed. Check MONGO_URI and Atlas network access.");
+  }
 
-const app = express();
-const server = http.createServer(app);
-
-initSocket(server);
-
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    credentials: true,
-  })
-);
-
-app.use(express.json());
-
-app.use((req, res, next) => {
-  console.log("=================================");
-  console.log(req.method, req.url);
-  console.log("Content-Type:", req.headers["content-type"]);
-  next();
-});
-
-/* PUBLIC ROUTES */
-app.use("/api/users", userRouter);
-app.use("/api/reviews", reviewRoutes);
-app.use("/api/providers", providerRouter);
-app.use("/api/ai", aiRouter);
-
-/* BOOKING ROUTES */
-app.use("/api/bookings", bookingRouter);
-
-/* PROTECTED ROUTES */
-app.use("/api/admin", authenticate, adminRouter);
-app.use("/api/contact", authenticate, contactRoutes);
-
-/* DATABASE */
-console.log("Connecting to URI:", process.env.MONGO_URI);
-
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("MongoDB Connected Successfully!");
-  })
-  .catch((err) => {
-    console.error("MongoDB Connection Error:", err);
+  const server = http.createServer(createApp());
+  initSocket(server);
+  const port = process.env.PORT || 3000;
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`MongoDB connected. Server running on ${port}`);
   });
+}
 
-const PORT = process.env.PORT || 3000;
-
-server.listen(PORT, () => {
-  console.log(`Server running on ${PORT}`);
+start().catch((error) => {
+  console.error(error.message);
+  process.exit(1);
 });

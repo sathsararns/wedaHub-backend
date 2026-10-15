@@ -1,13 +1,13 @@
 import { Server } from "socket.io";
+import { getCorsOptions } from "./config.js";
 
 let io;
 
 export function initSocket(server) {
   io = new Server(server, {
     cors: {
-      origin: "http://localhost:5173",
+      ...getCorsOptions(),
       methods: ["GET", "POST", "PUT", "DELETE"],
-      credentials: true,
     },
   });
 
