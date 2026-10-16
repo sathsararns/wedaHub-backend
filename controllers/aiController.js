@@ -25,11 +25,12 @@ export const chat = async (req, res) => {
 
     return res.json(result);
   } catch (err) {
-    console.error("AI CHAT ERROR:", err);
+    console.error("AI CHAT ERROR:", err.message);
 
-    return res.status(500).json({
+    return res.status(err.statusCode || 500).json({
       success: false,
       message: err.message,
+      code: err.code || "AI_ERROR",
     });
   }
 };
@@ -59,25 +60,34 @@ export const chatStream = async (req, res) => {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
     res.flushHeaders();
 
     upstream.on("error", (err) => {
-      console.error("AI STREAM UPSTREAM ERROR:", err);
-      res.end();
+      console.error("AI STREAM UPSTREAM ERROR:", err.message);
+      if (!res.destroyed && !res.writableEnded) {
+        res.end(`data: ${JSON.stringify({
+          type: "error",
+          message: "The AI connection was interrupted. Please try again shortly.",
+        })}\n\n`);
+      }
     });
 
-    req.on("close", () => {
+    // The request body can finish while the response is still streaming.
+    // Tear down the upstream only when the response connection closes.
+    res.on("close", () => {
       upstream.destroy();
     });
 
     upstream.pipe(res);
   } catch (err) {
-    console.error("AI CHAT STREAM ERROR:", err);
+    console.error("AI CHAT STREAM ERROR:", err.message);
 
     if (!res.headersSent) {
-      res.status(500).json({
+      res.status(err.statusCode || 500).json({
         success: false,
         message: err.message,
+        code: err.code || "AI_ERROR",
       });
     } else {
       res.end();
@@ -100,11 +110,12 @@ export const resetChat = async (req, res) => {
 
     return res.json(result);
   } catch (err) {
-    console.error("AI CHAT RESET ERROR:", err);
+    console.error("AI CHAT RESET ERROR:", err.message);
 
-    return res.status(500).json({
+    return res.status(err.statusCode || 500).json({
       success: false,
       message: err.message,
+      code: err.code || "AI_ERROR",
     });
   }
 };
