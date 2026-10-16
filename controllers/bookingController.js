@@ -84,7 +84,7 @@ const populateBooking = async (bookingId) => {
   return await Booking.findById(bookingId)
     .populate(
       "providerId",
-      "firstName lastName category city phone image businessName"
+      "firstName lastName category city district phone image businessName"
     )
     .populate(
       "customerId",
@@ -232,7 +232,7 @@ export const getCustomerBookings = async (
       })
         .populate(
           "providerId",
-          "firstName lastName category city phone image businessName"
+          "firstName lastName category city district phone image businessName"
         )
         .sort({
           createdAt: -1,
@@ -278,6 +278,10 @@ export const getProviderBookings = async (
         .populate(
           "customerId",
           "firstName lastName phone image email"
+        )
+        .populate(
+          "providerId",
+          "city district"
         )
         .sort({
           createdAt: -1,

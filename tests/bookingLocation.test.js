@@ -26,6 +26,32 @@ function response() {
   };
 }
 
+test("incoming bookings include provider area for legacy bookings with no saved location", async (t) => {
+  const booking = { city: "", providerId, customerId };
+  const provider = { _id: providerId, city: "Mirissa", district: "Matara" };
+  t.mock.method(Booking, "find", (filter) => {
+    assert.deepEqual(filter, { providerId });
+    return {
+      includesProviderArea: false,
+      populate(path, fields) {
+        if (path === "providerId") {
+          assert.ok(fields.split(" ").includes("city"));
+          this.includesProviderArea = true;
+        }
+        return this;
+      },
+      async sort() {
+        return [{ ...booking, providerId: this.includesProviderArea ? provider : providerId }];
+      },
+    };
+  });
+  const incoming = response();
+  await getProviderBookings({ user: { id: providerId } }, incoming);
+  assert.equal(incoming.statusCode, 200);
+  assert.equal(incoming.body[0].city, "");
+  assert.equal(incoming.body[0].providerId.city, "Mirissa");
+});
+
 for (const { name, input, expected } of [
   { name: "the current city field", input: { city: " Galle " }, expected: "Galle" },
   { name: "the legacy location field", input: { location: "Mirissa" }, expected: "Mirissa" },
