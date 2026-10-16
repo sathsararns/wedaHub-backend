@@ -137,6 +137,12 @@ export const createBooking = async (req, res) => {
       });
     }
 
+    const bookingCity = [city, location]
+      .find((value) => typeof value === "string" && value.trim())?.trim();
+    if (!bookingCity) {
+      return res.status(400).json({ message: "Service location (city) is required" });
+    }
+
     // -------------------------------------------------------
     // Create booking
     // -------------------------------------------------------
@@ -153,7 +159,7 @@ export const createBooking = async (req, res) => {
         description || "",
 
       city:
-        [city, location].find((value) => typeof value === "string" && value.trim())?.trim() || "",
+        bookingCity,
 
       date: parsedDate,
 
@@ -866,6 +872,7 @@ export const createAIBooking = async (
       description,
       date,
       city,
+      location,
     } = req.body;
 
     // =====================================================
@@ -920,6 +927,16 @@ export const createAIBooking = async (
         message:
           "description is required",
       });
+    }
+
+    // =====================================================
+    // LOCATION VALIDATION
+    // =====================================================
+
+    const bookingCity = [city, location]
+      .find((value) => typeof value === "string" && value.trim())?.trim();
+    if (!bookingCity) {
+      return res.status(400).json({ message: "Service location (city) is required" });
     }
 
     // =====================================================
@@ -983,9 +1000,7 @@ export const createAIBooking = async (
           String(description).trim(),
 
         city:
-          city
-            ? String(city).trim()
-            : "",
+          bookingCity,
 
         date:
           parsedDate,

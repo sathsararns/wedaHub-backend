@@ -4,6 +4,7 @@ import dns from "node:dns";
 import http from "http";
 import { initSocket } from "./socket.js";
 import { createApp } from "./app.js";
+import Booking from "./models/booking.js";
 
 async function start() {
   validateEnvironment();
@@ -20,6 +21,12 @@ async function start() {
     // Never print the URI: it includes the database username and password.
     throw new Error("MongoDB connection failed. Check MONGO_URI and Atlas network access.");
   }
+
+  // Helps operators select the correct Atlas collection without logging credentials.
+  console.log("MongoDB storage:", {
+    database: mongoose.connection.name,
+    collection: Booking.collection.name,
+  });
 
   const server = http.createServer(createApp());
   initSocket(server);

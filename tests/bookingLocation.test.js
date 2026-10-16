@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import http from "node:http";
 import Booking from "../models/booking.js";
-import { createBooking, getProviderBookings } from "../controllers/bookingController.js";
+import { createBooking, createAIBooking, getProviderBookings } from "../controllers/bookingController.js";
 import { initSocket } from "../socket.js";
 
 const customerId = "111111111111111111111111";
@@ -52,53 +52,78 @@ test("incoming bookings include provider area for legacy bookings with no saved 
   assert.equal(incoming.body[0].providerId.city, "Mirissa");
 });
 
-for (const { name, input, expected } of [
-  { name: "the current city field", input: { city: " Galle " }, expected: "Galle" },
-  { name: "the legacy location field", input: { location: "Mirissa" }, expected: "Mirissa" },
-  { name: "a legacy location with a blank city", input: { city: "  ", location: "Mirissa" }, expected: "Mirissa" },
-  { name: "an explicit city over a legacy location", input: { city: "Galle", location: "Mirissa" }, expected: "Galle" },
+for (const { source, create } of [
+  { source: "web", create: createBooking },
+  { source: "ai", create: createAIBooking },
 ]) {
-  test(`web bookings preserve ${name} in provider bookings and realtime notifications`, async (t) => {
-    let stored;
-    let notified;
-    t.mock.method(Booking, "create", async (payload) => {
-      // Exercise Mongoose's real strict schema: unrecognized fields would be lost.
-      stored = new Booking(payload);
-      await stored.validate();
-      return stored;
-    });
-    t.mock.method(Booking, "findById", () => ({
-      populate(path) {
-        return path === "customerId" ? Promise.resolve(stored.toObject()) : this;
-      },
-    }));
-    t.mock.method(io, "to", (room) => {
-      assert.equal(room, providerId);
-      return { emit(event, booking) { notified = { event, booking }; } };
-    });
-
-    const created = response();
-    await createBooking({
-      user: { id: customerId },
-      body: {
-        providerId, serviceName: "Electrician", description: "Repair my TV",
-        date: "2030-01-02", ...input,
-      },
-    }, created);
-
-    assert.equal(created.statusCode, 201);
-    assert.equal(stored.city, expected);
-    assert.equal(created.body.booking.city, expected);
-    assert.equal(notified.event, "new-booking");
-    assert.equal(notified.booking.city, expected);
-
-    t.mock.method(Booking, "find", (filter) => {
-      assert.deepEqual(filter, { providerId });
-      return { populate() { return this; }, sort: async () => [stored.toObject()] };
-    });
-    const incoming = response();
-    await getProviderBookings({ user: { id: providerId } }, incoming);
-    assert.equal(incoming.statusCode, 200);
-    assert.equal(incoming.body[0].city, expected);
+  test(`${source} booking requests reject missing or invalid locations before writing to MongoDB`, async (t) => {
+    t.mock.method(console, "log", () => {});
+    const write = t.mock.method(Booking, "create", () => assert.fail("Must not save a booking without its service location"));
+    for (const city of [undefined, null, "", "   ", 123, {}]) {
+      const res = response();
+      await create({
+        user: { id: customerId },
+        body: {
+          providerId, customerId, service: "Electrician", serviceName: "Electrician",
+          description: "Repair my TV", date: "2030-01-02", city,
+        },
+      }, res);
+      assert.equal(res.statusCode, 400);
+      assert.match(res.body.message, /location.*required/i);
+    }
+    assert.equal(write.mock.callCount(), 0);
   });
+
+  for (const { name, input, expected } of [
+    { name: "the current city field", input: { city: " Galle " }, expected: "Galle" },
+    { name: "the legacy location field", input: { location: "Mirissa" }, expected: "Mirissa" },
+    { name: "a legacy location with a blank city", input: { city: "  ", location: "Mirissa" }, expected: "Mirissa" },
+    { name: "an explicit city over a legacy location", input: { city: "Galle", location: "Mirissa" }, expected: "Galle" },
+  ]) {
+    test(`${source} bookings preserve ${name} in provider bookings and realtime notifications`, async (t) => {
+      t.mock.method(console, "log", () => {});
+      let stored;
+      let notified;
+      t.mock.method(Booking, "create", async (payload) => {
+        // Exercise Mongoose's real strict schema: unrecognized fields would be lost.
+        stored = new Booking(payload);
+        await stored.validate();
+        return stored;
+      });
+      t.mock.method(Booking, "findById", () => ({
+        populate(path) {
+          return path === "customerId" ? Promise.resolve(stored.toObject()) : this;
+        },
+      }));
+      t.mock.method(io, "to", (room) => {
+        assert.equal(room, providerId);
+        return { emit(event, booking) { notified = { event, booking }; } };
+      });
+
+      const created = response();
+      await create({
+        user: { id: customerId },
+        body: {
+          providerId, customerId, service: "Electrician", serviceName: "Electrician", description: "Repair my TV",
+          date: "2030-01-02", ...input,
+        },
+      }, created);
+
+      assert.equal(created.statusCode, 201);
+      assert.equal(stored.city, expected);
+      assert.equal(stored.source, source);
+      assert.equal(created.body.booking.city, expected);
+      assert.equal(notified.event, "new-booking");
+      assert.equal(notified.booking.city, expected);
+
+      t.mock.method(Booking, "find", (filter) => {
+        assert.deepEqual(filter, { providerId });
+        return { populate() { return this; }, sort: async () => [stored.toObject()] };
+      });
+      const incoming = response();
+      await getProviderBookings({ user: { id: providerId } }, incoming);
+      assert.equal(incoming.statusCode, 200);
+      assert.equal(incoming.body[0].city, expected);
+    });
+  }
 }
