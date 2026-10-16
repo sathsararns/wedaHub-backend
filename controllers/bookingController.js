@@ -105,6 +105,7 @@ export const createBooking = async (req, res) => {
       description,
       date,
       city,
+      location,
       time,
     } = req.body;
 
@@ -152,7 +153,7 @@ export const createBooking = async (req, res) => {
         description || "",
 
       city:
-        city || "",
+        [city, location].find((value) => typeof value === "string" && value.trim())?.trim() || "",
 
       date: parsedDate,
 
