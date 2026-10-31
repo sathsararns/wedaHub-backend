@@ -56,6 +56,48 @@ for (const { source, create } of [
   { source: "web", create: createBooking },
   { source: "ai", create: createAIBooking },
 ]) {
+  test(`${source} bookings save the next yearless date and preserve explicit years`, async (t) => {
+    t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-10-31T06:30:00Z") });
+    t.mock.method(console, "log", () => {});
+    let stored;
+    t.mock.method(Booking, "create", async (payload) => {
+      stored = new Booking(payload);
+      await stored.validate();
+      return stored;
+    });
+    t.mock.method(Booking, "findById", () => ({
+      populate(path) {
+        return path === "customerId" ? Promise.resolve(stored.toObject()) : this;
+      },
+    }));
+    t.mock.method(io, "to", () => ({ emit() {} }));
+
+    for (const { now = "2026-10-31T06:30:00Z", input, expected } of [
+      { input: "November 2", expected: [2026, 11, 2] },
+      { input: "2 November", expected: [2026, 11, 2] },
+      { input: "January 2", expected: [2027, 1, 2] },
+      { input: "November 2, 2027", expected: [2027, 11, 2] },
+      { input: "2026-11-02", expected: [2026, 11, 2] },
+      { now: "2027-10-31T06:30:00Z", input: "November 2", expected: [2027, 11, 2] },
+      { now: "2027-11-03T06:30:00Z", input: "November 2", expected: [2028, 11, 2] },
+      { now: "2030-10-31T06:30:00Z", input: "November 2", expected: [2030, 11, 2] },
+    ]) {
+      t.mock.timers.setTime(new Date(now).getTime());
+      const res = response();
+      await create({
+        user: { id: customerId },
+        body: {
+          providerId, customerId, service: "Electrician", serviceName: "Electrician",
+          description: "Repair my TV", city: "Matara", date: input,
+        },
+      }, res);
+      assert.equal(res.statusCode, 201, input);
+      const saved = res.body.booking.date;
+      assert.deepEqual([saved.getFullYear(), saved.getMonth() + 1, saved.getDate()], expected, input);
+      assert.equal(saved.getTime(), stored.date.getTime());
+    }
+  });
+
   test(`${source} booking requests reject missing or invalid locations before writing to MongoDB`, async (t) => {
     t.mock.method(console, "log", () => {});
     const write = t.mock.method(Booking, "create", () => assert.fail("Must not save a booking without its service location"));
