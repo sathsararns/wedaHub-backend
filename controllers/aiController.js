@@ -2,7 +2,24 @@ import {
   chatWithAI,
   streamChat,
   resetChatMemory,
+  checkAIReadiness,
 } from "../services/aiService.js";
+
+// Wake the AI when the chat page opens, without submitting a message or
+// changing conversation memory. This endpoint checks process readiness only.
+export const health = async (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  try {
+    await checkAIReadiness();
+    return res.json({ status: "ok" });
+  } catch (err) {
+    return res.status(err.statusCode || 503).json({
+      status: "unavailable",
+      message: err.message,
+      code: err.code || "AI_UNAVAILABLE",
+    });
+  }
+};
 
 // =========================
 // Chat

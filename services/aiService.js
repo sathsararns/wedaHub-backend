@@ -13,6 +13,16 @@ export function createAIClient({
   retryDelayMs = 1_000,
 } = {}) {
   const url = baseURL.trim().replace(/\/+$/, "");
+  let readinessPromise = null;
+
+  function ensureReady() {
+    // Page-open and chat requests can arrive together. Share only the active
+    // read-only probe; a later visit must check again after a possible sleep.
+    if (!readinessPromise) {
+      readinessPromise = waitUntilReady().finally(() => { readinessPromise = null; });
+    }
+    return readinessPromise;
+  }
 
   async function waitUntilReady() {
     const deadline = Date.now() + readinessTimeoutMs;
@@ -41,7 +51,7 @@ export function createAIClient({
   }
 
   async function request(path, payload, streaming = false) {
-    await waitUntilReady();
+    await ensureReady();
 
     try {
       const { data } = await axios.post(`${url}${path}`, payload, {
@@ -68,6 +78,7 @@ export function createAIClient({
   }
 
   return {
+    ensureReady,
     chatWithAI: (message, customerId = null) =>
       request("/chat", { message, customer_id: customerId }),
     streamChat: (message, customerId = null) =>
@@ -78,6 +89,10 @@ export function createAIClient({
 }
 
 const aiClient = createAIClient();
+
+export async function checkAIReadiness() {
+  await aiClient.ensureReady();
+}
 
 // =============================
 // Chat

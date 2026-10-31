@@ -6,10 +6,12 @@ let aiServer;
 let proxyServer;
 let baseURL;
 let behavior;
+const aiRequests = [];
 const previousURL = process.env.AI_SERVICE_URL;
 
 before(async () => {
   aiServer = http.createServer((req, res) => {
+    aiRequests.push({ method: req.method, path: req.url });
     if (req.url === "/health") {
       res.setHeader("Content-Type", "application/json");
       res.end('{"status":"ok"}');
@@ -45,6 +47,15 @@ function send() {
     signal: AbortSignal.timeout(3000),
   });
 }
+
+test("the page-open readiness endpoint only probes AI health and cannot be cached", async () => {
+  const before = aiRequests.length;
+  const response = await fetch(`${baseURL}/api/ai/health`);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.deepEqual(await response.json(), { status: "ok" });
+  assert.deepEqual(aiRequests.slice(before), [{ method: "GET", path: "/health" }]);
+});
 
 test("continues streaming a delayed reply after the browser request body is complete", async () => {
   behavior = (res) => {

@@ -19,6 +19,21 @@ async function service(t, handler, options = {}) {
   });
 }
 
+test("simultaneous warm-up checks share one read-only probe without submitting chat", async (t) => {
+  let probes = 0;
+  const client = await service(t, (req, res) => {
+    assert.equal(req.method, "GET");
+    assert.equal(req.url, "/health");
+    probes++;
+    res.setHeader("Content-Type", "application/json");
+    setTimeout(() => res.end('{"status":"ok"}'), 20);
+  });
+  await Promise.all([client.ensureReady(), client.ensureReady()]);
+  assert.equal(probes, 1);
+  await client.ensureReady();
+  assert.equal(probes, 2);
+});
+
 test("waits for a sleeping AI service, then sends the chat POST exactly once", async (t) => {
   let probes = 0;
   let posts = 0;
